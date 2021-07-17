@@ -1,0 +1,181 @@
+---
+title: "Dimensionality Reduction and Feature Selection"
+author: "Joe Kirika"
+date: "15/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Importing And Previewing The Data   
+### Importing the data
+```{r}
+# loading the data
+df1 <- read.csv('http://bit.ly/CarreFourDataset')
+```
+
+### Previewing the data     
+```{r}
+#checking the top rows of our dataset
+print(head(df1))
+
+#checking the bottom rows of our dataset
+print(tail(df1))
+
+# checking the structure of the dataset
+str(df1)
+```
+
+## Data Cleaning
+```{r}
+#check for nulls
+colSums(is.na(df1))
+```
+
+```{r}
+# Checking for duplicated data
+dim(df1[duplicated(df1), ])
+```
+                
+> there were no null values or duplicated columns         
+
+```{r}
+# check for outliers/anomalies
+
+# Finding all columns that are numerical/not strings & subsetting to new dataframe
+df_num <- df1[, !sapply(df1, is.character)]
+
+par(mfrow = c(1,1), mar = c(5,4,2,2))
+boxplot(df_num[, c(1:2)], main='BoxPlots')
+boxplot(df_num[, c(3,5)])
+boxplot(df_num[, c(6,7)])
+boxplot(df_num[,c(4,8)])
+```
+
+> There are outliers in                
+ * tax,
+ * gross.income,       
+ * cogs,         
+ * Total.                
+ 
+```{r}
+# plotting a correlation matrix
+
+library(ggcorrplot)
+
+ggcorrplot(cor(df_num))
+
+```
+                           
+> from the correlation matrix we notice some highly positive correlated variables Tax, cogs and gross.income and as well as Total                               
+
+# Principal Component Analysis         
+
+```{r}
+# removing the column with no variance from the numerical columns
+df_num <- df_num[,c(-5)]
+
+```
+
+```{r}
+# We  pass df_num to the prcomp(). We also set two arguments, center and scale, 
+# to be TRUE then preview our object with summary
+
+# 
+df.pca <- prcomp(df_num, center = TRUE, scale. = TRUE)
+summary(df.pca)
+```
+             
+> PC1, PC2 and PC3  explains ~ 98.71% of the proportion of variance in the data 
+with PC1 = 70.31% PC2=14.29% and PC3 = 14.11%         
+
+```{r}
+# Then Loading our ggbiplot library to visualize the pcas
+#  
+library(ggbiplot)
+ggbiplot(df.pca, obs.scale = 1, var.scale = 2)+ labs(title=" principal components 1 and 2")
+
+
+```
+         
+> we see that unit.price, gloss.income and quantity contribute to PC1  with higher values in those variables moving the samples to the left on the plot and the Rating variable contribute to PC2                       
+
+```{r}
+# 
+ggbiplot(df.pca,ellipse=TRUE,groups=df1$Branch, obs.scale = 1, var.scale = 2) + labs(title=" Grouping using variable Branch")
+
+```
+
+```{r}
+# 
+ggbiplot(df.pca, ellipse=TRUE, groups = df1$Gender, obs.scale = 1, var.scale = 2)+ labs(title=" Grouping using variable Gender")
+
+```
+
+```{r}
+ggbiplot(df.pca, ellipse=TRUE, groups = df1$Customer.type, obs.scale = 1, var.scale = 2)+ labs(title=" Grouping using variable Customer type")
+```
+
+```{r}
+ggbiplot(df.pca, ellipse=TRUE, groups = df1$Product.line, obs.scale = 1, var.scale = 2)+ labs(title=" Grouping using variable Product line")
+```
+
+```{r}
+ggbiplot(df.pca, ellipse=TRUE, groups = df1$Payment, obs.scale = 1, var.scale = 2)+ labs(title=" Grouping using variable Payment")
+```
+
+> as observed, trying to cluster using categorical variables does not seem to accrue enough information since the clusters overlap             
+                                  
+## Feature Selection
+
+#### using correlationmatrix
+```{r}
+# importing the libraries
+library(caret)
+library(corrplot)
+```
+
+```{r}
+# computing the correlation of the numerical column
+correlationMatrix <- cor(df_num)
+```
+
+```{r}
+# filtering the highly corrlated variables at 0.75
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
+```
+
+```{r}
+# getting the Highly correlated attributes
+# ---
+# 
+highlyCorrelated
+# getting the names 
+names(df_num[,highlyCorrelated])
+```
+ > the above variables are highly correlated                
+ 
+#### Using Wrapper Methods
+```{r}
+# importing some libraries
+library(clustvarsel)
+library(mclust)
+```
+
+```{r}
+# Sequential forward greedy search (default)
+clustvarsel(df_num)
+```
+
+                                                        
+> from the wrapper methods suggests Quantity, cogs, Unit.price as  the optimal subset of variables for further analysis
+
+### Recommendations
+
+> PC1, PC2 and PC3  explains ~ 98.71% of the proportion of variance in the data 
+with PC1 = 70.31% PC2=14.29% and PC3 = 14.11%   
+> from the wrapper methods suggests Quantity, cogs, Unit.price as  the optimal subset of variables for further analysis
+> trying to cluster using categorical variables does not seem to accrue enough information since the clusters overlap  
+> "cogs"  "Total" "Tax" are highly correlated   

@@ -1,0 +1,120 @@
+---
+title: " Association Rules"
+author: "Joe Kirika"
+date: "15/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Importing And Previewing The Data          
+### Importing the data
+
+```{r}
+# importing the library
+library(arules)
+```
+
+```{r}
+# reading the dataset
+
+df2 <- read.transactions('http://bit.ly/SupermarketDatasetII',sep = ",")
+```
+
+### Previewing the data          
+```{r}
+#checking the dataset
+
+print(df2)
+```
+
+```{r}
+# Verifying the object's class
+
+class(df2)
+```
+
+```{r}
+# Previewing our first 5 transactions
+#
+inspect(df2[1:5])
+```
+
+```{r}
+# To preview the items that make up our dataset,
+# 
+items<-as.data.frame(itemLabels(df2))
+colnames(items) <- "Item"
+
+# the first 10 items
+head(items, 10)  
+```
+```{r}
+# Generating a summary of the dataset
+
+summary(df2)
+```
+
+```{r}
+# Exploring the frequency of some articles (the first ten itemson the list)
+# note: they are listred alphabetically
+itemFrequency(df2[, 1:10],type = "absolute")
+round(itemFrequency(df2[, 1:10],type = "relative")*100,2)
+```
+
+```{r}
+# Displaying top 10 most common items in the transactions dataset 
+# and the items whose relative importance is at least 10%
+# 
+par(mfrow = c(1, 2))
+
+# plot the frequency of items
+itemFrequencyPlot(df2, topN = 10,col="lightgreen")
+
+itemFrequencyPlot(df2, support = 0.1,col="lightblue")
+
+```
+  
+> the graph on the left shows top common items in the transactions dataset whereas the graph on the left showsitems whose relative importance is at least 10% with mineral water as the lead  
+
+```{r}
+# Building a model based on association rules 
+# using the apriori function 
+# We use Min Support as 0.001 and confidence as 0.8
+# ---
+# 
+rules <- apriori (df2, parameter = list(supp = 0.001, conf = 0.8))
+rules
+```
+> we get a set of 74 rules using a support of 0.001 and confidence of 0.8         
+
+```{r}
+# We can perform an exploration of our model 
+# through the use of the summary function
+summary(rules)
+```
+
+> we have some 42 rules with 4 items, 16 rules with 5 items, 15 rules with 3 items and finally 1 rule with 6 items              
+
+```{r}
+# Ordering these rules by level of lift
+# then looking at the first ten rules.
+# ---
+# 
+rules<-sort(rules, by="lift", decreasing=TRUE)
+
+inspect(rules[1:10])
+```
+
+
+> sorting the rules by lift and two noticeable rules with confidence > 95%         
+* {french fries, mushroom cream sauce,pasta}   => {escalope}            
+* {mushroom cream sauce, pasta}                => {escalope}
+*  {cake, meatballs,mineral water}             => {milk}
+
+### conclusions and Recommendations           
+> most common item in the transactions dataset is mineral water   
+> we got a set of 74 rules using a support of 0.001 and confidence of 0.8                  
+> we have some 42 rules with 4 items, 16 rules with 5 items, 15 rules with 3 items and finally 1 rule with 6 items          
